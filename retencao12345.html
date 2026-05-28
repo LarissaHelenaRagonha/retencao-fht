@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retenção FHT</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0d0f12;--bg2:#13161c;--bg3:#1a1e27;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.1);
+  --text:#e8eaf0;--muted:#5a6170;--muted2:#8b95a5;
+  --green:#10d98a;--green-dim:rgba(16,217,138,0.08);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.08);
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.08);
+  --blue:#4f8ef7;--blue-dim:rgba(79,142,247,0.08);
+  --purple:#8b7cf8;--purple-dim:rgba(139,124,248,0.08);
+  --orange:#f97316;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);
+  background-size:40px 40px;}
+
+.topbar{position:sticky;top:0;z-index:100;background:rgba(13,15,18,0.92);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:48px;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.logo{width:28px;height:28px;background:var(--amber);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:10px;color:#000;}
+.topbar-title{font-size:12px;font-weight:700;color:var(--text);}
+.topbar-sub{font-size:9px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;}
+.badge-live{display:flex;align-items:center;gap:5px;background:var(--green-dim);border:1px solid rgba(16,217,138,0.2);border-radius:20px;padding:3px 9px;font-size:9px;font-weight:700;color:var(--green);letter-spacing:0.08em;text-transform:uppercase;}
+.badge-live::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+.topbar-time{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted2);}
+
+.main{position:relative;z-index:1;padding:1.25rem 1.5rem;max-width:1440px;margin:0 auto;}
+.sec{font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;margin-top:1.4rem;}
+.sec:first-child{margin-top:0;}
+.sec::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;}
+.field{display:flex;flex-direction:column;gap:3px;}
+.field label{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;}
+.field input{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 9px;font-size:12px;color:var(--text);font-family:'Inter',sans-serif;outline:none;}
+.field input:focus{border-color:var(--amber);}
+.field input::placeholder{color:var(--muted);}
+.btn-amber{background:var(--amber);border:none;border-radius:7px;padding:7px 18px;font-size:11px;font-weight:700;color:#000;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-amber:hover{opacity:0.85;}
+.btn-green{background:transparent;border:1px solid var(--green);border-radius:7px;padding:7px 18px;font-size:11px;font-weight:700;color:var(--green);cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-green:hover{background:var(--green-dim);}
+
+/* FILTROS */
+.filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:0.75rem;}
+.filter-row:last-child{margin-bottom:0;}
+.flbl{font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.mode-btn{padding:5px 14px;border-radius:6px;border:1px solid var(--border2);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;background:transparent;color:var(--muted2);}
+.mode-btn.active{background:var(--bg3);color:var(--text);border-color:rgba(255,255,255,0.15);}
+.qbtn{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;font-size:11px;font-weight:600;color:var(--muted2);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;}
+.qbtn:hover{color:var(--text);}
+.qbtn.active{background:var(--amber);border-color:var(--amber);color:#000;font-weight:700;}
+
+/* DATE PICKER */
+.dp-wrap{position:relative;display:inline-block;}
+.dp-btn{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;min-width:200px;}
+.dp-btn.has-date{border-color:rgba(245,158,11,0.4);color:var(--amber);}
+.dp-popup{display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:999;background:#13161c;border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:1rem;width:316px;box-shadow:0 12px 40px rgba(0,0,0,0.6);}
+.dp-popup.open{display:block;}
+.dp-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;}
+.dp-nav{background:transparent;border:none;color:var(--muted2);cursor:pointer;font-size:18px;padding:0 8px;line-height:1;}
+.dp-nav:hover{color:var(--text);}
+.dp-mlbl{font-size:12px;font-weight:700;color:var(--text);}
+.dp-wdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+.dp-wd{text-align:center;font-size:9px;font-weight:700;color:var(--muted);padding:3px 0;}
+.dp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.dp-d{width:100%;aspect-ratio:1;border:none;border-radius:5px;cursor:pointer;font-size:11px;font-family:'Inter',sans-serif;background:transparent;color:var(--text);transition:all 0.1s;}
+.dp-d:hover{background:rgba(255,255,255,0.07);}
+.dp-d.om{color:#3a4150;}
+.dp-d.tod{background:rgba(79,142,247,0.15);color:var(--blue);font-weight:700;}
+.dp-d.ir{background:rgba(245,158,11,0.1);}
+.dp-d.rs,.dp-d.re{background:var(--amber)!important;color:#000;font-weight:700;}
+.dp-d.rs{border-radius:5px 0 0 5px;}
+.dp-d.re{border-radius:0 5px 5px 0;}
+.dp-d.rs.re{border-radius:5px;}
+.dp-info{margin-top:0.75rem;padding:8px 10px;background:var(--bg3);border-radius:6px;font-size:11px;color:var(--muted2);min-height:32px;}
+.dp-cfm{display:none;margin-top:8px;width:100%;background:var(--amber);border:none;border-radius:6px;padding:7px;font-size:11px;font-weight:700;color:#000;cursor:pointer;font-family:'Inter',sans-serif;}
+.dp-clr{display:block;width:100%;margin-top:6px;background:transparent;border:1px solid var(--border2);border-radius:6px;padding:6px;font-size:10px;color:var(--muted2);cursor:pointer;font-family:'Inter',sans-serif;}
+
+/* META */
+.meta-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.5rem 2rem;margin-bottom:0.75rem;position:relative;overflow:hidden;}
+.meta-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--amber) 50%,transparent);}
+.meta-grid{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:2rem;}
+.meta-num{font-size:72px;font-weight:900;line-height:1;letter-spacing:-3px;}
+.bar-track{height:10px;background:rgba(255,255,255,0.05);border-radius:8px;position:relative;overflow:visible;}
+.bar-marker{position:absolute;left:50%;top:-4px;width:2px;height:18px;background:var(--amber);border-radius:2px;z-index:2;}
+.bar-fill{height:100%;border-radius:8px;transition:width 0.8s ease;max-width:100%;}
+
+/* CARDS TOPO */
+.top-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:0.65rem;margin-bottom:0.75rem;}
+.top-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;}
+.top-card-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:4px;}
+.top-card-num{font-size:36px;font-weight:800;letter-spacing:-1px;line-height:1;}
+
+/* DESFECHOS */
+.desfechos-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;}
+.df-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;position:relative;overflow:hidden;}
+.df-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.df-green::before{background:linear-gradient(90deg,var(--green),transparent 60%);}
+.df-red::before{background:linear-gradient(90deg,var(--red),transparent 60%);}
+.df-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+.df-num{font-size:56px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:4px;}
+.df-pct{font-size:13px;font-weight:600;margin-bottom:4px;}
+.df-sub{font-size:10px;color:var(--muted);}
+
+/* MENTORES */
+.mentores-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:0.75rem;}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;position:relative;overflow:hidden;}
+.mc.rank-1{border-color:rgba(245,158,11,0.25);}
+.mc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.mc-g::before{background:linear-gradient(90deg,var(--green),transparent 60%);}
+.mc-p::before{background:linear-gradient(90deg,var(--purple),transparent 60%);}
+.mc-a::before{background:linear-gradient(90deg,var(--amber),transparent 60%);}
+.mc-rank{position:absolute;top:1rem;right:1rem;font-size:18px;}
+.mc-hdr{display:flex;align-items:center;gap:10px;margin-bottom:1rem;}
+.mc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.mc-g .mc-av{background:var(--green-dim);color:var(--green);border:1px solid rgba(16,217,138,0.2);}
+.mc-p .mc-av{background:var(--purple-dim);color:var(--purple);border:1px solid rgba(139,124,248,0.2);}
+.mc-a .mc-av{background:var(--amber-dim);color:var(--amber);border:1px solid rgba(245,158,11,0.2);}
+.mc-name{font-size:14px;font-weight:700;color:var(--text);}
+.mc-role{font-size:10px;color:var(--muted);}
+.mc-pct{font-size:48px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:4px;}
+.mc-g .mc-pct{color:var(--green);}
+.mc-p .mc-pct{color:var(--purple);}
+.mc-a .mc-pct{color:var(--amber);}
+.mc-lbl{font-size:10px;color:var(--muted);margin-bottom:0.75rem;}
+.mc-bar{height:3px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;margin-bottom:1rem;}
+.mc-g .mc-bar-fill{background:var(--green);height:100%;}
+.mc-p .mc-bar-fill{background:var(--purple);height:100%;}
+.mc-a .mc-bar-fill{background:var(--amber);height:100%;}
+.mc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.mst{background:var(--bg3);border-radius:7px;padding:8px 10px;}
+.mst-v{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-0.5px;}
+.mst-l{font-size:8px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;}
+
+/* ABERTO */
+.aberto-grid{display:grid;grid-template-columns:auto 1fr;gap:1rem;align-items:start;margin-bottom:0.75rem;}
+.aberto-big{background:var(--bg2);border:1px solid rgba(249,115,22,0.2);border-radius:12px;padding:1.25rem 1.5rem;text-align:center;}
+.aberto-num{font-size:56px;font-weight:900;letter-spacing:-2px;color:var(--orange);line-height:1;}
+.aberto-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--orange);margin-bottom:4px;}
+.aberto-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.aberto-mentores{display:grid;grid-template-columns:repeat(3,1fr);gap:0.65rem;}
+.aberto-mc{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1rem;}
+.aberto-mc-name{font-size:11px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.aberto-mc-num{font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--orange);}
+.aberto-mc-lbl{font-size:9px;color:var(--muted);}
+
+/* MOTIVOS */
+.motivos-list{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:0.75rem;}
+.motivo-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);}
+.motivo-row:last-child{border-bottom:none;}
+.motivo-rank{font-size:12px;font-weight:700;color:var(--muted);width:20px;flex-shrink:0;}
+.motivo-bar-wrap{flex:1;}
+.motivo-name{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.motivo-bar-track{height:4px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;}
+.motivo-bar-fill{height:100%;border-radius:4px;background:var(--red);}
+.motivo-count{font-size:13px;font-weight:700;color:var(--text);flex-shrink:0;}
+.motivo-pct{font-size:10px;color:var(--muted);flex-shrink:0;width:36px;text-align:right;}
+
+/* FINANCEIRO */
+.fin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:0.75rem;}
+.fin-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;position:relative;overflow:hidden;}
+.fin-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.fin-green::before{background:linear-gradient(90deg,var(--green),transparent 60%);}
+.fin-amber::before{background:linear-gradient(90deg,var(--amber),transparent 60%);}
+.fin-red::before{background:linear-gradient(90deg,var(--red),transparent 60%);}
+.fin-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;}
+.fin-num{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:4px;}
+.fin-pct{font-size:13px;font-weight:600;margin-bottom:4px;}
+.fin-sub{font-size:10px;color:var(--muted);}
+
+footer{text-align:center;padding:1.5rem;font-size:9px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">FHT</div>
+    <div><div class="topbar-title">Retenção FHT</div><div class="topbar-sub">Notion Live</div></div>
+    <div class="badge-live">Ao vivo</div>
+  </div>
+  <div class="topbar-time" id="clock">--:--:--</div>
+</div>
+
+<div class="main">
+
+  <!-- CONFIG -->
+  <div class="card" style="padding:1.25rem;margin-bottom:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <div style="font-size:11px;font-weight:700;color:var(--text);">Configuração do Notion</div>
+      <button onclick="toggleConfig()" id="btn-toggle" style="background:transparent;border:none;font-size:10px;color:var(--muted2);cursor:pointer;font-family:Inter,sans-serif;">Ocultar</button>
+    </div>
+    <div id="cfg-fields">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
+        <div class="field"><label>Token de integração</label><input type="password" id="n-token" placeholder="ntn_..."></div>
+        <div class="field"><label>Database ID</label><input type="text" id="n-dbid" placeholder="1d9ffb47..."></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-amber" onclick="saveConfig()">Salvar e conectar</button>
+        <button class="btn-green" id="btn-sync" style="display:none;" onclick="syncNotion()">↻ Sincronizar</button>
+        <span id="n-status" style="font-size:11px;color:var(--muted2);"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="card" id="filter-section" style="display:none;padding:1.1rem 1.5rem;margin-bottom:1rem;">
+    <div class="filter-row">
+      <span class="flbl">Filtrar por</span>
+      <button class="mode-btn active" id="mode-call" onclick="setMode('call')">Data da Call</button>
+      <button class="mode-btn" id="mode-entrada" onclick="setMode('entrada')">Data de Entrada em Retenção</button>
+    </div>
+    <div class="filter-row">
+      <span class="flbl">Período</span>
+      <button class="qbtn active" onclick="setQuick('all',this)">Todos</button>
+      <button class="qbtn" onclick="setQuick(7,this)">7 dias</button>
+      <button class="qbtn" onclick="setQuick(30,this)">30 dias</button>
+      <button class="qbtn" onclick="setQuick(90,this)">3 meses</button>
+      <button class="qbtn" onclick="setQuick(365,this)">1 ano</button>
+      <div class="dp-wrap" id="dp-wrap">
+        <button class="dp-btn" id="dp-btn" onclick="toggleDP(event)">
+          <span>📅</span><span id="dp-label">Selecionar período</span>
+        </button>
+        <div class="dp-popup" id="dp-popup">
+          <div class="dp-hdr">
+            <button class="dp-nav" onclick="dpNav(-1)">&#8249;</button>
+            <span class="dp-mlbl" id="dp-mlbl"></span>
+            <button class="dp-nav" onclick="dpNav(1)">&#8250;</button>
+          </div>
+          <div class="dp-wdays">
+            <div class="dp-wd">D</div><div class="dp-wd">S</div><div class="dp-wd">T</div>
+            <div class="dp-wd">Q</div><div class="dp-wd">Q</div><div class="dp-wd">S</div><div class="dp-wd">S</div>
+          </div>
+          <div class="dp-days" id="dp-days"></div>
+          <div class="dp-info" id="dp-info">Clique para selecionar o início do período</div>
+          <button class="dp-cfm" id="dp-cfm" onclick="confirmDP()">Confirmar período</button>
+          <button class="dp-clr" onclick="clearDP()">Limpar</button>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--muted2);" id="filter-summary"></div>
+  </div>
+
+  <!-- META -->
+  <div class="sec">Meta de retenção</div>
+  <div class="meta-card" style="margin-bottom:0.75rem;">
+    <div class="meta-grid">
+      <div>
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">% Retenção atual</div>
+        <div style="display:flex;align-items:baseline;gap:14px;">
+          <div class="meta-num" id="meta-pct" style="color:var(--green);">—</div>
+          <div><div style="font-size:13px;color:var(--muted2);">de</div><div style="font-size:28px;font-weight:800;letter-spacing:-1px;color:var(--muted);">50%</div><div style="font-size:10px;color:var(--muted);">meta</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted2);margin-top:6px;" id="meta-sub"></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:10px;color:var(--muted);">
+          <span>0%</span><span style="font-weight:700;color:var(--amber);">meta 50%</span><span>100%</span>
+        </div>
+        <div class="bar-track"><div class="bar-marker"></div><div class="bar-fill" id="meta-bar" style="width:0%;background:var(--green);"></div></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;font-size:10px;color:var(--muted2);" id="meta-frac"></div>
+      </div>
+      <div style="text-align:center;padding:1.1rem 1.5rem;background:var(--bg3);border-radius:10px;border:1px solid var(--border);">
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue);margin-bottom:4px;">Com desfecho</div>
+        <div id="meta-total" style="font-size:40px;font-weight:800;letter-spacing:-1.5px;color:var(--blue);line-height:1;">0</div>
+        <div style="font-size:11px;color:var(--muted2);margin-top:4px;" id="meta-fraction-total"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;" id="meta-mode-lbl">no período</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESFECHOS -->
+  <div class="sec">Desfechos</div>
+  <div class="desfechos-grid">
+    <div class="df-card df-green">
+      <div class="df-lbl" style="color:var(--green);">✓ Retidos em call</div>
+      <div class="df-num" id="d-ret" style="color:var(--green);">0</div>
+      <div class="df-pct" id="d-ret-pct" style="color:var(--green);"></div>
+      <div class="df-sub" id="d-ret-sub"></div>
+    </div>
+    <div class="df-card df-red">
+      <div class="df-lbl" style="color:var(--red);">✗ Cancelados</div>
+      <div class="df-num" id="d-canc" style="color:var(--red);">0</div>
+      <div class="df-pct" id="d-canc-pct" style="color:var(--red);"></div>
+      <div class="df-sub" id="d-canc-sub"></div>
+    </div>
+  </div>
+
+  <!-- FINANCEIRO DOS RETIDOS -->
+  <div class="sec">Financeiro dos retidos</div>
+  <div class="fin-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="fin-card" style="border:1px solid var(--border);position:relative;overflow:hidden;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),transparent 60%);"></div>
+      <div class="fin-lbl" style="color:var(--blue);">🔄 Em processo</div>
+      <div class="fin-num" id="fin-em-processo" style="color:var(--blue);">0</div>
+      <div class="fin-pct" id="fin-em-processo-pct" style="color:var(--blue);"></div>
+      <div class="fin-sub">EM RETENÇÃO · financeiro em andamento</div>
+    </div>
+    <div class="fin-card fin-green">
+      <div class="fin-lbl" style="color:var(--green);">✅ Pagaram</div>
+      <div class="fin-num" id="fin-pago" style="color:var(--green);">0</div>
+      <div class="fin-pct" id="fin-pago-pct" style="color:var(--green);"></div>
+      <div class="fin-sub">REGULARIZADO</div>
+    </div>
+    <div class="fin-card fin-amber">
+      <div class="fin-lbl" style="color:var(--amber);">⏳ Pendentes</div>
+      <div class="fin-num" id="fin-pendente" style="color:var(--amber);">0</div>
+      <div class="fin-pct" id="fin-pendente-pct" style="color:var(--amber);"></div>
+      <div class="fin-sub">EM REGULARIZAÇÃO · AGUARDANDO PARCELA 01</div>
+    </div>
+    <div class="fin-card fin-red">
+      <div class="fin-lbl" style="color:var(--red);">❌ Não pagaram</div>
+      <div class="fin-num" id="fin-nao-pago" style="color:var(--red);">0</div>
+      <div class="fin-pct" id="fin-nao-pago-pct" style="color:var(--red);"></div>
+      <div class="fin-sub">CANCELADO | TIPO 1 · CANCELADO | TIPO 2</div>
+    </div>
+  </div>
+
+
+
+
+  <!-- PIPELINE -->
+  <div class="sec">Pipeline</div>
+  <div class="top-cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:0.75rem;">
+    <div class="top-card" style="border-color:rgba(79,142,247,0.2);">
+      <div class="top-card-lbl" style="color:var(--blue);">Entrada em retenção</div>
+      <div class="top-card-num" id="tc-entradas" style="color:var(--blue);">0</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px;" id="tc-entradas-sub">por data de registro</div>
+    </div>
+    <div class="top-card" style="border-color:rgba(245,158,11,0.2);">
+      <div class="top-card-lbl" style="color:var(--amber);">Em contato</div>
+      <div class="top-card-num" id="tc-contato" style="color:var(--amber);">0</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px;">aguardando resposta</div>
+    </div>
+    <div class="top-card" style="border-color:rgba(139,124,248,0.2);">
+      <div class="top-card-lbl" style="color:var(--purple);">Call agendada</div>
+      <div class="top-card-num" id="tc-call-agendada" style="color:var(--purple);">0</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px;">aguardando call</div>
+    </div>
+    <div class="top-card" style="border-color:rgba(249,115,22,0.2);">
+      <div class="top-card-lbl" style="color:var(--orange);">Em aberto</div>
+      <div class="top-card-num" id="tc-aberto" style="color:var(--orange);">0</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:3px;">sem desfecho ainda</div>
+    </div>
+  </div>
+
+  <!-- EM ABERTO -->
+  <div class="sec">Em aberto por mentor</div>
+  <div class="aberto-grid">
+    <div class="aberto-big">
+      <div class="aberto-lbl">Total em aberto</div>
+      <div class="aberto-num" id="ab-total">0</div>
+      <div class="aberto-sub">sem desfecho ainda</div>
+    </div>
+    <div class="aberto-mentores" id="ab-mentores"></div>
+  </div>
+
+  <!-- RANKING -->
+  <div class="sec">Ranking de mentores</div>
+  <div class="mentores-grid" id="mentores-grid"></div>
+
+  <!-- MOTIVOS -->
+  <div class="sec">Principais motivos de cancelamento</div>
+  <div class="motivos-list" id="motivos-list">
+    <div style="padding:2rem;text-align:center;font-size:12px;color:var(--muted);">Aguardando dados...</div>
+  </div>
+
+  <div style="text-align:right;font-size:10px;color:var(--muted);margin-top:0.5rem;" id="last-sync"></div>
+</div>
+<footer>Retenção FHT · Notion Live</footer>
+
+<script>
+// ── STATE ─────────────────────────────────────────────
+let notionToken = localStorage.getItem('fht-token') || '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';
+let notionDbId  = localStorage.getItem('fht-dbid')  || '1d9ffb475105807e894ed74b8d909b43';
+let notionData      = [];   // com desfecho
+let abertoData      = [];   // desfecho mentor (em aberto)
+let contatoData     = [];   // em contato
+let callAgendadaData = [];  // call agendada
+let dateMode    = 'call';
+let dateFrom    = null;
+let dateTo      = null;
+
+const PROXY = 'https://notion-proxy-fht.coachlarissaragonha.workers.dev';
+
+const MENTORS = [
+  { keys:['Lari Ragonha','Larissa Ragonha'], name:'Larissa Ragonha', initials:'LR', cls:'mc-g' },
+  { keys:['Henrique Bento'],                 name:'Henrique Bento',  initials:'HB', cls:'mc-a' },
+  { keys:['Claudio Tonon','Cláudio Tonon'],  name:'Claudio Tonon',   initials:'CT', cls:'mc-p' },
+];
+
+const RETIDOS_DEF   = ['Retido Mentoria','Retido Mastermind','Downgrade FHT Light'];
+const CANCELADO_DEF = ['Cancelado','Congelado','Tentativas Esgotadas','Downgrade Comunidade FHT'];
+
+// ── INIT ──────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  if(notionToken) document.getElementById('n-token').value=notionToken;
+  if(notionDbId)  document.getElementById('n-dbid').value=notionDbId;
+  if(notionToken&&notionDbId){ document.getElementById('btn-sync').style.display='inline-flex'; syncNotion(); }
+  dpInit();
+  document.addEventListener('click',e=>{ const w=document.getElementById('dp-wrap'); if(w&&!w.contains(e.target)) document.getElementById('dp-popup').classList.remove('open'); });
+});
+
+function toggleConfig(){
+  const f=document.getElementById('cfg-fields'),b=document.getElementById('btn-toggle');
+  const h=f.style.display==='none'; f.style.display=h?'block':'none'; b.textContent=h?'Ocultar':'Mostrar';
+}
+
+function saveConfig(){
+  notionToken=document.getElementById('n-token').value.trim();
+  notionDbId=document.getElementById('n-dbid').value.trim();
+  if(!notionToken||!notionDbId){alert('Preencha token e Database ID.');return;}
+  localStorage.setItem('fht-token',notionToken); localStorage.setItem('fht-dbid',notionDbId);
+  document.getElementById('btn-sync').style.display='inline-flex';
+  syncNotion();
+}
+
+// ── NOTION ────────────────────────────────────────────
+function getProp(page,name){
+  const p=page.properties?.[name]; if(!p) return null;
+  if(p.type==='select')       return p.select?.name||null;
+  if(p.type==='status')       return p.status?.name||null;
+  if(p.type==='multi_select') return p.multi_select?.map(x=>x.name)||[];
+  if(p.type==='date')         return p.date?.start||null;
+  if(p.type==='title')        return p.title?.map(x=>x.plain_text).join('')||null;
+  if(p.type==='rich_text')    return p.rich_text?.map(x=>x.plain_text).join('')||null;
+  if(p.type==='people')       return p.people?.map(x=>x.name)||[];
+  if(p.type==='formula')      return p.formula?.string||null;
+  return null;
+}
+
+async function queryNotion(filter){
+  let results=[],cursor;
+  do{
+    const body={page_size:100,filter};
+    if(cursor) body.start_cursor=cursor;
+    const res=await fetch(`${PROXY}/v1/databases/${notionDbId}/query`,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+notionToken,'Notion-Version':'2022-06-28','Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.message||'Erro Notion');}
+    const data=await res.json();
+    results=results.concat(data.results);
+    cursor=data.has_more?data.next_cursor:undefined;
+  }while(cursor);
+  return results;
+}
+
+function mapPage(p){
+  return {
+    desfecho:        getProp(p,'Retenção | Desfecho Retenção'),
+    mentor:          getProp(p,'Retenção | Mentor Delegado'),
+    dataCall:        getProp(p,'Retenção | Data Call'),
+    dataEntrada:     getProp(p,'Data Entrada:')||getProp(p,'Retenção | Data Contato (Automá...')||getProp(p,'Retenção | Data Registro (Automá...'),
+    dataRegistro:    getProp(p,'Retenção | Data Registro (Automático)')||getProp(p,'Retenção | Data R...')||getProp(p,'Retenção | Data Registro'),
+    motivo:          getProp(p,'Retenção | Motivo do Aluno'),
+    statusFinanceiro:getProp(p,'Status | Financeiro'),
+  };
+}
+
+async function syncNotion(){
+  const status=document.getElementById('n-status'),btn=document.getElementById('btn-sync');
+  btn.textContent='↻ Sincronizando...'; status.textContent='Buscando dados...';
+  try{
+    // busca com desfecho
+    const comDesfecho=await queryNotion({property:'Retenção | Desfecho Retenção',status:{is_not_empty:true}});
+    notionData=comDesfecho.map(mapPage).filter(d=>d.desfecho);
+
+    // busca em aberto = DESFECHO MENTOR
+    const emAberto=await queryNotion({property:'Retenção | Agendamento',status:{equals:'DESFECHO MENTOR'}});
+    abertoData=emAberto.map(mapPage);
+
+    // busca EM CONTATO
+    const emContato=await queryNotion({property:'Retenção | Agendamento',status:{equals:'EM CONTATO'}});
+    contatoData=emContato.map(mapPage);
+
+    // busca CALL AGENDADA
+    const callAgendada=await queryNotion({property:'Retenção | Agendamento',status:{equals:'CALL AGENDADA'}});
+    callAgendadaData=callAgendada.map(mapPage);
+
+    const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    btn.textContent='↻ Sincronizar';
+    status.textContent=`✓ ${notionData.length} com desfecho · ${abertoData.length} em aberto (Em aberto) · ${now}`;
+    document.getElementById('last-sync').textContent=`Última sincronização: ${now}`;
+    document.getElementById('filter-section').style.display='block';
+    render();
+  }catch(e){ btn.textContent='↻ Sincronizar'; status.textContent='❌ '+e.message; }
+}
+
+// ── FILTROS ───────────────────────────────────────────
+function setMode(mode){
+  dateMode=mode;
+  document.getElementById('mode-call').classList.toggle('active',mode==='call');
+  document.getElementById('mode-entrada').classList.toggle('active',mode==='entrada');
+  render();
+}
+
+function setQuick(days,btn){
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(days==='all'){ dateFrom=null; dateTo=null; clearDP(true); render(); return; }
+  const to=new Date(),from=new Date(); from.setDate(from.getDate()-days);
+  dateFrom=from; dateTo=to; updateDPLabel(); render();
+}
+
+function getFiltered(){
+  if(!dateFrom&&!dateTo) return notionData;
+  return notionData.filter(d=>{
+    const ds=dateMode==='call'?d.dataCall:d.dataEntrada;
+    if(!ds) return false;
+    const date=new Date(ds);
+    if(dateFrom&&date<new Date(dateFrom.getFullYear(),dateFrom.getMonth(),dateFrom.getDate())) return false;
+    if(dateTo&&date>new Date(dateTo.getFullYear(),dateTo.getMonth(),dateTo.getDate(),23,59,59)) return false;
+    return true;
+  });
+}
+
+function getFilteredEntradas(){
+  // filtra por Retenção | Data Registro
+  const all=[...notionData,...abertoData,...contatoData,...callAgendadaData];
+  if(!dateFrom&&!dateTo) return all.filter(d=>d.dataRegistro).length;
+  return all.filter(d=>{
+    const ds=d.dataRegistro; if(!ds) return false;
+    const date=new Date(ds);
+    if(dateFrom&&date<new Date(dateFrom.getFullYear(),dateFrom.getMonth(),dateFrom.getDate())) return false;
+    if(dateTo&&date>new Date(dateTo.getFullYear(),dateTo.getMonth(),dateTo.getDate(),23,59,59)) return false;
+    return true;
+  }).length;
+}
+
+// ── DATE PICKER ───────────────────────────────────────
+let dpCur=new Date(),dpStart=null,dpEnd=null,dpSel=false;
+const MES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function dpInit(){ dpCur=new Date(); renderDP(); }
+function toggleDP(e){ e.stopPropagation(); document.getElementById('dp-popup').classList.toggle('open'); renderDP(); }
+function dpNav(d){ dpCur=new Date(dpCur.getFullYear(),dpCur.getMonth()+d,1); renderDP(); }
+function sd(a,b){ return a&&b&&a.toDateString()===b.toDateString(); }
+
+function renderDP(){
+  const y=dpCur.getFullYear(),m=dpCur.getMonth();
+  document.getElementById('dp-mlbl').textContent=MES[m]+' '+y;
+  const first=new Date(y,m,1),fd=first.getDay();
+  let cur=new Date(first); cur.setDate(1-(fd===0?6:fd-1));
+  const today=new Date(); today.setHours(0,0,0,0);
+  const cont=document.getElementById('dp-days'); cont.innerHTML='';
+  for(let i=0;i<42;i++){
+    const d=new Date(cur); d.setDate(cur.getDate()+i);
+    if(i>27&&d.getMonth()!==m) break;
+    const btn=document.createElement('button');
+    btn.className='dp-d'; btn.textContent=d.getDate();
+    if(d.getMonth()!==m) btn.classList.add('om');
+    if(sd(d,today)) btn.classList.add('tod');
+    if(dpStart&&dpEnd){ if(sd(d,dpStart)) btn.classList.add('rs'); if(sd(d,dpEnd)) btn.classList.add('re'); if(d>dpStart&&d<dpEnd) btn.classList.add('ir'); }
+    else if(dpStart&&sd(d,dpStart)) btn.classList.add('rs','re');
+    const dd=new Date(d);
+    btn.onclick=(e)=>{e.stopPropagation();dpClick(dd);};
+    cont.appendChild(btn);
+  }
+}
+
+function dpClick(d){
+  if(!dpSel||!dpStart){ dpStart=d;dpEnd=null;dpSel=true; document.getElementById('dp-info').textContent='Início: '+d.toLocaleDateString('pt-BR')+' · Clique para o fim'; document.getElementById('dp-cfm').style.display='none'; }
+  else{ if(d<dpStart){dpEnd=dpStart;dpStart=d;}else dpEnd=d; dpSel=false; document.getElementById('dp-info').textContent=dpStart.toLocaleDateString('pt-BR')+' → '+dpEnd.toLocaleDateString('pt-BR'); document.getElementById('dp-cfm').style.display='block'; }
+  renderDP();
+}
+
+function confirmDP(){
+  if(!dpStart) return;
+  dateFrom=dpStart; dateTo=dpEnd||dpStart;
+  updateDPLabel();
+  document.getElementById('dp-popup').classList.remove('open');
+  document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('active'));
+  render();
+}
+
+function updateDPLabel(){
+  if(!dateFrom){ document.getElementById('dp-label').textContent='Selecionar período'; document.getElementById('dp-btn').classList.remove('has-date'); return; }
+  const f=dateFrom.toLocaleDateString('pt-BR'),t=(dateTo||dateFrom).toLocaleDateString('pt-BR');
+  document.getElementById('dp-label').textContent=f===t?f:f+' – '+t;
+  document.getElementById('dp-btn').classList.add('has-date');
+}
+
+function clearDP(silent){
+  dpStart=null;dpEnd=null;dpSel=false;
+  document.getElementById('dp-info').textContent='Clique para selecionar o início do período';
+  document.getElementById('dp-cfm').style.display='none';
+  document.getElementById('dp-label').textContent='Selecionar período';
+  document.getElementById('dp-btn').classList.remove('has-date');
+  if(!silent){ dateFrom=null;dateTo=null; document.querySelectorAll('.qbtn').forEach(b=>b.classList.remove('active')); document.querySelector('.qbtn').classList.add('active'); render(); }
+  renderDP();
+}
+
+// ── RENDER ────────────────────────────────────────────
+function pN(n,d){ return d?Math.round(n/d*100):0; }
+function set(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+
+function mentorOf(d){
+  const name=Array.isArray(d.mentor)?d.mentor[0]:d.mentor;
+  if(!name) return null;
+  return MENTORS.find(m=>m.keys.includes(name))||null;
+}
+
+function render(){
+  const data=getFiltered();
+  const total=data.length;
+  const retidos=data.filter(d=>RETIDOS_DEF.includes(d.desfecho)).length;
+  const retMent=data.filter(d=>d.desfecho==='Retido Mentoria').length;
+  const retMast=data.filter(d=>d.desfecho==='Retido Mastermind').length;
+  const retDown=data.filter(d=>d.desfecho==='Downgrade FHT Light').length;
+  const cancelado=data.filter(d=>CANCELADO_DEF.includes(d.desfecho)).length;
+  const cancPuro=data.filter(d=>d.desfecho==='Cancelado').length;
+  const cong=data.filter(d=>d.desfecho==='Congelado').length;
+  const tent=data.filter(d=>d.desfecho==='Tentativas Esgotadas').length;
+
+  // META
+  const retidosData   = data.filter(d=>RETIDOS_DEF.includes(d.desfecho));
+  const finPago       = retidosData.filter(d=>d.statusFinanceiro==='REGULARIZADO').length;
+  const finPendente   = retidosData.filter(d=>['EM REGULARIZAÇÃO','AGUARDANDO PARCELA 01'].includes(d.statusFinanceiro)).length;
+  const finEmProcesso = retidosData.filter(d=>d.statusFinanceiro==='EM RETENÇÃO').length;
+  const finNaoPago    = retidosData.filter(d=>['CANCELADO | TIPO 1','CANCELADO | TIPO 2'].includes(d.statusFinanceiro)).length;
+  const finTotal      = finPago + finPendente + finEmProcesso + finNaoPago;
+  const retidosVerdade = finPago + finPendente + finEmProcesso;
+  const pMeta=total?pN(retidosVerdade,total):null;
+  const mc=pMeta===null?'var(--muted)':pMeta>=50?'var(--green)':pMeta>=35?'var(--amber)':'var(--red)';
+  const mEl=document.getElementById('meta-pct'); mEl.textContent=pMeta!==null?pMeta+'%':'—'; mEl.style.color=mc;
+  document.getElementById('meta-bar').style.cssText=`width:${Math.min(100,pMeta||0)}%;background:${mc};`;
+  set('meta-sub',pMeta!==null?(pMeta>=50?'✓ Meta atingida! · inclui pagamentos confirmados, pendentes e em processo':(50-pMeta)+'% abaixo da meta · inclui pagamentos confirmados, pendentes e em processo'):'Sem dados');
+  set('meta-frac',retidosVerdade+' retidos de verdade de '+total+' registros');
+  set('meta-fraction-total', retidosVerdade+' retidos de verdade');
+  set('meta-total',total);
+  set('meta-mode-lbl',dateMode==='call'?'por data da call':'por data de entrada');
+
+  // PIPELINE
+  const entradas=getFilteredEntradas();
+  set('tc-entradas', entradas);
+  set('tc-entradas-sub', dateFrom?'no período selecionado':'total geral');
+  set('tc-contato', contatoData.length);
+  set('tc-call-agendada', callAgendadaData.length);
+  set('tc-aberto', abertoData.length);
+
+  // DESFECHOS
+  set('d-ret',retidos);
+  set('d-ret-pct',total?pN(retidos,total)+'% do total':'—');
+  set('d-ret-sub',retMent+' mentoria · '+retMast+' mastermind · '+retDown+' FHT Light');
+  set('d-canc',cancelado);
+  set('d-canc-pct',total?pN(cancelado,total)+'% do total':'—');
+  set('d-canc-sub',cancPuro+' cancelados · '+cong+' congelados · '+tent+' tent. esgotadas');
+
+  // EM ABERTO POR MENTOR
+  set('ab-total',abertoData.length);
+  const abStats={};
+  MENTORS.forEach(m=>{abStats[m.name]=0;});
+  abertoData.forEach(d=>{ const m=mentorOf(d); if(m) abStats[m.name]++; });
+  document.getElementById('ab-mentores').innerHTML=MENTORS.map(m=>`
+    <div class="aberto-mc">
+      <div class="aberto-mc-name">${m.name}</div>
+      <div class="aberto-mc-num">${abStats[m.name]}</div>
+      <div class="aberto-mc-lbl">em aberto</div>
+    </div>`).join('');
+
+  // RANKING MENTORES
+  const mStats={};
+  MENTORS.forEach(m=>{mStats[m.name]={calls:0,ret:0,canc:0};});
+  data.forEach(d=>{
+    const m=mentorOf(d); if(!m) return;
+    mStats[m.name].calls++;
+    if(RETIDOS_DEF.includes(d.desfecho))   mStats[m.name].ret++;
+    if(CANCELADO_DEF.includes(d.desfecho)) mStats[m.name].canc++;
+  });
+
+  const sorted=MENTORS.map(m=>({...m,...mStats[m.name],pct:mStats[m.name].calls?pN(mStats[m.name].ret,mStats[m.name].calls):0}))
+    .sort((a,b)=>b.pct-a.pct);
+
+  const ranks=['🥇','🥈','🥉'];
+  document.getElementById('mentores-grid').innerHTML=sorted.map((m,i)=>`
+    <div class="mc ${m.cls} ${i===0?'rank-1':''}">
+      <div class="mc-rank">${ranks[i]||''}</div>
+      <div class="mc-hdr"><div class="mc-av">${m.initials}</div><div><div class="mc-name">${m.name}</div><div class="mc-role">Mentor${m.initials==='LR'?'a':''}</div></div></div>
+      <div class="mc-pct">${m.calls?m.pct+'%':'—'}</div>
+      <div class="mc-lbl">taxa de retenção</div>
+      <div class="mc-bar"><div class="mc-bar-fill" style="width:${m.pct}%"></div></div>
+      <div class="mc-stats">
+        <div class="mst"><div class="mst-v">${m.calls}</div><div class="mst-l">Calls</div></div>
+        <div class="mst"><div class="mst-v" style="color:var(--green)">${m.ret}</div><div class="mst-l">Retidos</div></div>
+        <div class="mst"><div class="mst-v" style="color:var(--red)">${m.canc}</div><div class="mst-l">Canc.</div></div>
+      </div>
+    </div>`).join('');
+
+  // FINANCEIRO DOS RETIDOS
+
+
+  set('fin-pago',     finPago);
+  set('fin-pago-pct', finTotal?pN(finPago,finTotal)+'% dos retidos':'—');
+  set('fin-pendente',     finPendente);
+  set('fin-pendente-pct', finTotal?pN(finPendente,finTotal)+'% dos retidos':'—');
+  set('fin-em-processo',     finEmProcesso);
+  set('fin-em-processo-pct', finTotal?pN(finEmProcesso,finTotal)+'% dos retidos':'—');
+  set('fin-nao-pago',     finNaoPago);
+  set('fin-nao-pago-pct', finTotal?pN(finNaoPago,finTotal)+'% dos retidos':'—');
+
+  const finRetidosVerdade = finPago + finPendente;
+  set('fin-retidos-verdade', finRetidosVerdade);
+  set('fin-retidos-verdade-pct', retidosData.length ? pN(finRetidosVerdade,retidosData.length)+'% dos retidos em call' : '—');
+
+  // MOTIVOS
+  const motivoMap={};
+  data.filter(d=>CANCELADO_DEF.includes(d.desfecho)).forEach(d=>{
+    const motivos=Array.isArray(d.motivo)?d.motivo:(d.motivo?[d.motivo]:[]);
+    motivos.forEach(mot=>{ if(mot){ motivoMap[mot]=(motivoMap[mot]||0)+1; } });
+  });
+  const motivoList=Object.entries(motivoMap).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const maxMot=motivoList[0]?.[1]||1;
+  document.getElementById('motivos-list').innerHTML=motivoList.length?motivoList.map(([nome,cnt],i)=>`
+    <div class="motivo-row">
+      <div class="motivo-rank">${i+1}</div>
+      <div class="motivo-bar-wrap">
+        <div class="motivo-name">${nome}</div>
+        <div class="motivo-bar-track"><div class="motivo-bar-fill" style="width:${pN(cnt,maxMot)}%"></div></div>
+      </div>
+      <div class="motivo-count">${cnt}</div>
+      <div class="motivo-pct">${pN(cnt,cancelado)}%</div>
+    </div>`).join('')
+    :'<div style="padding:2rem;text-align:center;font-size:12px;color:var(--muted);">Nenhum motivo registrado</div>';
+
+  // FILTER SUMMARY
+  const modeLabel=dateMode==='call'?'data da call':'data de entrada';
+  const periodLabel=dateFrom?dateFrom.toLocaleDateString('pt-BR')+' – '+(dateTo||dateFrom).toLocaleDateString('pt-BR'):'todos os registros';
+  set('filter-summary',`${total} registros com desfecho · filtrado por ${modeLabel} · ${periodLabel}`);
+}
+
+function updateClock(){ document.getElementById('clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+setInterval(updateClock,1000); updateClock();
+</script>
+</body>
+</html>
